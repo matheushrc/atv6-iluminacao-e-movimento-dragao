@@ -20,9 +20,9 @@ var clock = new THREE.Clock();
 
 var setDirectionalLighting = function (scene) {
   let sunlight = new THREE.DirectionalLight(0xffffff, 1);
-  Object.assign(sunlight.position, { x: 50, y: 50, z: 50 });
-
   sunlight.castShadow = true;
+  // Configurar as coordenadas da luz solar
+  Object.assign(sunlight.position, { x: 50, y: 50, z: 50 });
 
   // Configurar a câmera de sombra usando Object.assign
   Object.assign(sunlight.shadow.camera, {
@@ -34,15 +34,16 @@ var setDirectionalLighting = function (scene) {
     far: 200,
   });
 
+  // Máxima qualidade da sombra
+  Object.assign(sunlight.shadow.mapSize, {
+    width: 4096,
+    height: 4096,
+  });
+
   // Fix shadow acne with proper bias
+  // Consertar acne de sombra com viés adequado, criava artefatos visuais de sombras quadriculadas
   sunlight.shadow.bias = -0.001;
   sunlight.shadow.normalBias = 0.05;
-
-  // Reduzir qualidade da sombra para melhor performance
-  Object.assign(sunlight.shadow.mapSize, {
-    width: 1024,
-    height: 1024,
-  });
 
   scene.add(sunlight);
 };
@@ -54,7 +55,8 @@ var setAmbientLighting = function (scene) {
 
 var setSpotLighting = function (scene) {
   let spotLight = new THREE.SpotLight(0xffffff, 500);
-  spotLight.position.set(30, 60, 30);
+  // Configurar as coordenadas do spotLight usando Object.assign
+  Object.assign(spotLight.position, { x: 30, y: 60, z: 30 });
   spotLight.angle = Math.PI / 6; // narrow cone (30deg)
   spotLight.penumbra = 0.2;
   spotLight.decay = 1;
@@ -72,10 +74,10 @@ var setSpotLighting = function (scene) {
   spotLight.shadow.bias = -0.0001;
   spotLight.shadow.normalBias = 0.02;
 
-  // Melhorar a qualidade da sombra
+  // Máxima qualidade da sombra
   Object.assign(spotLight.shadow.mapSize, {
-    width: 1024,
-    height: 1024,
+    width: 4096,
+    height: 4096,
   });
 
   scene.add(spotLight);
@@ -83,7 +85,8 @@ var setSpotLighting = function (scene) {
 
 var setPointLighting = function (scene) {
   let pointLight = new THREE.PointLight(0xffffff, 5000);
-  pointLight.position.set(-20, -5.8, 30);
+  // Configurar as coordenadas do pointLight usando Object.assign
+  Object.assign(pointLight.position, { x: -20, y: -5.8, z: 30 });
   pointLight.distance = 50;
   pointLight.decay = 2;
   pointLight.castShadow = true;
@@ -95,10 +98,10 @@ var setPointLighting = function (scene) {
     fov: 30,
   });
 
-  // Melhorar a qualidade da sombra
+  // Máxima qualidade da sombra
   Object.assign(pointLight.shadow.mapSize, {
-    width: 2048,
-    height: 2048,
+    width: 4096,
+    height: 4096,
   });
 
   scene.add(pointLight);
@@ -375,7 +378,7 @@ var createGround = function (scene) {
   textureGround.wrapS = THREE.RepeatWrapping;
   textureGround.wrapT = THREE.RepeatWrapping;
   textureGround.repeat.set(25, 25);
-  textureGround.anisotropy = 16;
+  textureGround.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Máximo anisotropic filtering
 
   let materialGround = new THREE.MeshStandardMaterial({ map: textureGround });
 
@@ -403,16 +406,19 @@ function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xb3e0ff); // azul claro, cor de céu
 
-  // CAMERA - Otimizado para performance
+  // CAMERA - Máxima qualidade de antialiasing
   renderer = new THREE.WebGLRenderer({
     antialias: true,
+    powerPreference: "high-performance",
+    stencil: false,
+    depth: true,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limitar pixel ratio
+  renderer.setPixelRatio(window.devicePixelRatio); // Usar pixel ratio máximo para melhor qualidade
   renderer.render(scene, camera);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setAnimationLoop(nossaAnimacao);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.BasicShadowMap; // Usar shadow map mais rápido
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Melhor qualidade de sombras com antialiasing
 
   // scene.add(new THREE.AmbientLight(0xffffff));
   createGround(scene);

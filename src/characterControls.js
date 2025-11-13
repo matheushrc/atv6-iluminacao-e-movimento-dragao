@@ -11,6 +11,7 @@ export class CharacterControls {
   // state
   toggleRun = true;
   currentAction;
+  runMode = "toggle"; // "toggle" ou "hold"
 
   // temporary data
   walkDirection = new THREE.Vector3();
@@ -20,8 +21,8 @@ export class CharacterControls {
 
   // constants
   fadeDuration = 0.2;
-  runVelocity = 5;
-  walkVelocity = 2;
+  runVelocity = 50;
+  walkVelocity = 15;
 
   constructor(
     model,
@@ -47,6 +48,23 @@ export class CharacterControls {
 
   switchRunToggle() {
     this.toggleRun = !this.toggleRun;
+  }
+
+  setRunMode(mode) {
+    this.runMode = mode;
+    // No modo hold, sempre começa sem correr
+    if (mode === "hold") {
+      this.toggleRun = false;
+    } else {
+      this.toggleRun = true;
+    }
+  }
+
+  setRunning(isRunning) {
+    // Usado apenas no modo "hold"
+    if (this.runMode === "hold") {
+      this.toggleRun = isRunning;
+    }
   }
 
   update(delta, keysPressed) {

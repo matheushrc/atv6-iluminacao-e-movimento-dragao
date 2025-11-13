@@ -166,6 +166,7 @@ var createGui = function () {
     bumpIntensity: 0.5,
     roughness: 0.8,
     metalness: 0.2,
+    runMode: "toggle",
   };
 
   let lighting = gui.addFolder("Lighting");
@@ -221,6 +222,18 @@ var createGui = function () {
       };
       if (animationActions[animIndex[value]]) {
         setAction(animationActions[animIndex[value]]);
+      }
+    });
+
+  let runModes = ["toggle", "hold"];
+  mickey
+    .add(parametrosGui, "runMode")
+    .name("Run Mode (Shift)")
+    .options(runModes)
+    .onChange(function (value) {
+      console.log(`Modo de corrida alterado para: ${value}`);
+      if (characterControls) {
+        characterControls.setRunMode(value);
       }
     });
 
@@ -446,12 +459,35 @@ function init() {
 // CONTROL KEYS
 const keysPressed = {};
 const keyDisplayQueue = new KeyDisplay();
+
+let shiftPressed = false;
+let lastShiftTime = 0;
+
 document.addEventListener(
   "keydown",
   (event) => {
     keyDisplayQueue.down(event.key);
-    if (event.shiftKey && characterControls) {
-      characterControls.switchRunToggle();
+
+    if (event.key.toLowerCase() === "shift") {
+      if (!shiftPressed && characterControls) {
+        shiftPressed = true;
+        const currentTime = Date.now();
+
+        // Toggle mode: precisa dar tap no Shift
+        if (
+          parametrosGui.runMode === "toggle" &&
+          currentTime - lastShiftTime < 500
+        ) {
+          characterControls.switchRunToggle();
+        } else if (parametrosGui.runMode === "toggle") {
+          characterControls.switchRunToggle();
+        } else if (parametrosGui.runMode === "hold") {
+          // Hold mode: ativa corrida enquanto segura
+          characterControls.setRunning(true);
+        }
+
+        lastShiftTime = currentTime;
+      }
     } else {
       keysPressed[event.key.toLowerCase()] = true;
     }
@@ -461,7 +497,17 @@ document.addEventListener(
 
 document.addEventListener("keyup", (event) => {
   keyDisplayQueue.up(event.key);
-  keysPressed[event.key.toLowerCase()] = false;
+
+  if (event.key.toLowerCase() === "shift") {
+    shiftPressed = false;
+
+    // Hold mode: desativa corrida ao soltar
+    if (parametrosGui.runMode === "hold" && characterControls) {
+      characterControls.setRunning(false);
+    }
+  } else {
+    keysPressed[event.key.toLowerCase()] = false;
+  }
 });
 
 var nossaAnimacao = function () {

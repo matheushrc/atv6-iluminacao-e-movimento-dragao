@@ -1,7 +1,7 @@
 import { KeyDisplay } from "./utils";
 import { CharacterControls } from "./characterControls";
 import * as THREE from "three";
-import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
@@ -20,24 +20,28 @@ var clock = new THREE.Clock();
 
 var setDirectionalLighting = function (scene) {
   let sunlight = new THREE.DirectionalLight(0xffffff, 1);
-  Object.assign(sunlight.position, { x: 50, y: 900, z: 50 });
+  Object.assign(sunlight.position, { x: 50, y: 50, z: 50 });
 
   sunlight.castShadow = true;
 
   // Configurar a câmera de sombra usando Object.assign
   Object.assign(sunlight.shadow.camera, {
-    left: -100,
-    right: 100,
-    top: 100,
-    bottom: -100,
-    // near: 0.5, // caso um passaro passa bem perto da camera e o near é muito pequeno a sombra tampa tudo
-    far: 950,
+    left: -50,
+    right: 50,
+    top: 50,
+    bottom: -50,
+    near: 0.5,
+    far: 200,
   });
+
+  // Fix shadow acne with proper bias
+  sunlight.shadow.bias = -0.001;
+  sunlight.shadow.normalBias = 0.05;
 
   // Reduzir qualidade da sombra para melhor performance
   Object.assign(sunlight.shadow.mapSize, {
-    width: 512,
-    height: 512,
+    width: 1024,
+    height: 1024,
   });
 
   scene.add(sunlight);
@@ -59,15 +63,19 @@ var setSpotLighting = function (scene) {
 
   // Configurar a câmera de sombra usando Object.assign
   Object.assign(spotLight.shadow.camera, {
-    near: 0.5,
-    far: 2000,
+    near: 1,
+    far: 200,
     fov: 30,
   });
 
+  // Fix shadow acne with proper bias
+  spotLight.shadow.bias = -0.0001;
+  spotLight.shadow.normalBias = 0.02;
+
   // Melhorar a qualidade da sombra
   Object.assign(spotLight.shadow.mapSize, {
-    width: 2048,
-    height: 2048,
+    width: 1024,
+    height: 1024,
   });
 
   scene.add(spotLight);
@@ -148,8 +156,8 @@ var createGui = function () {
 
   parametrosGui = {
     environmentLighting: "directional",
-    dragaoScale: 0.01,
-    dragaoRotationY: 0,
+    mickeyScale: 50,
+    mickeyRotationY: 0,
     animation: "idle",
     normalIntensity: 1.0,
     bumpIntensity: 0.5,
@@ -158,7 +166,7 @@ var createGui = function () {
   };
 
   let lighting = gui.addFolder("Lighting");
-  let dragao = gui.addFolder("Dragao");
+  let mickey = gui.addFolder("Mickey");
   let texturas = gui.addFolder("Texturas");
 
   let lightingOptions = ["directional", "spotlight", "point"];
@@ -171,49 +179,45 @@ var createGui = function () {
       setLighting(value);
     });
 
-  dragao
-    .add(parametrosGui, "dragaoScale")
-    .min(0.01)
-    .max(0.1)
-    .step(0.005)
+  mickey
+    .add(parametrosGui, "mickeyScale")
+    .min(50)
+    .max(500)
+    .step(0.01)
     .name("Scale")
     .onChange(function (value) {
-      objects["dragao"].scale.x =
-        objects["dragao"].scale.y =
-        objects["dragao"].scale.z =
+      objects["mickey"].scale.x =
+        objects["mickey"].scale.y =
+        objects["mickey"].scale.z =
           value;
     });
 
-  dragao
-    .add(parametrosGui, "dragaoRotationY")
+  mickey
+    .add(parametrosGui, "mickeyRotationY")
     .min(-2)
     .max(2)
     .step(0.1)
     .name("Rotation")
     .onChange(function (value) {
-      objects["dragao"].rotation.y = value;
+      objects["mickey"].rotation.y = value;
     });
 
-  let dragonAnimations = ["idle", "flying", "walking", "running"];
-  dragao
+  let mickeyAnimations = ["idle", "walk", "run", "skipping", "jump"];
+  mickey
     .add(parametrosGui, "animation")
     .name("Animation")
-    .options(dragonAnimations)
+    .options(mickeyAnimations)
     .onChange(function (value) {
       console.log("Mudou para a animação: " + value);
-      switch (value) {
-        case "idle":
-          setAction(animationActions[2]); // index 2 from FBX
-          break;
-        case "flying":
-          setAction(animationActions[1]); // index 1 from FBX
-          break;
-        case "walking":
-          setAction(animationActions[0]); // index 0 from FBX
-          break;
-        case "running":
-          setAction(animationActions[3]); // index 3 from FBX
-          break;
+      const animIndex = {
+        idle: 0,
+        walk: 1,
+        run: 2,
+        skipping: 3,
+        jump: 4,
+      };
+      if (animationActions[animIndex[value]]) {
+        setAction(animationActions[animIndex[value]]);
       }
     });
 
@@ -225,8 +229,8 @@ var createGui = function () {
     .step(0.1)
     .name("Normal Map Intensity")
     .onChange(function (value) {
-      if (objects["dragao"]) {
-        objects["dragao"].traverse(function (child) {
+      if (objects["mickey"]) {
+        objects["mickey"].traverse(function (child) {
           if (child instanceof THREE.Mesh && child.material.normalMap) {
             child.material.normalScale.set(value, value);
             child.material.needsUpdate = true;
@@ -242,8 +246,8 @@ var createGui = function () {
     .step(0.1)
     .name("Bump Map Intensity")
     .onChange(function (value) {
-      if (objects["dragao"]) {
-        objects["dragao"].traverse(function (child) {
+      if (objects["mickey"]) {
+        objects["mickey"].traverse(function (child) {
           if (child instanceof THREE.Mesh && child.material.bumpMap) {
             child.material.bumpScale = value;
             child.material.needsUpdate = true;
@@ -259,8 +263,8 @@ var createGui = function () {
     .step(0.05)
     .name("Roughness")
     .onChange(function (value) {
-      if (objects["dragao"]) {
-        objects["dragao"].traverse(function (child) {
+      if (objects["mickey"]) {
+        objects["mickey"].traverse(function (child) {
           if (child instanceof THREE.Mesh) {
             child.material.roughness = value;
             child.material.needsUpdate = true;
@@ -276,8 +280,8 @@ var createGui = function () {
     .step(0.05)
     .name("Metalness")
     .onChange(function (value) {
-      if (objects["dragao"]) {
-        objects["dragao"].traverse(function (child) {
+      if (objects["mickey"]) {
+        objects["mickey"].traverse(function (child) {
           if (child instanceof THREE.Mesh) {
             child.material.metalness = value;
             child.material.needsUpdate = true;
@@ -288,94 +292,59 @@ var createGui = function () {
 };
 
 var loadObj = function () {
-  let fbxLoader = new FBXLoader();
+  let gltfLoader = new GLTFLoader();
   let textureLoader = new THREE.TextureLoader();
 
-  fbxLoader.load(
-    "/dragon/dragon.fbx",
-    function (dragonMesh) {
-      dragonMesh.traverse(function (child) {
+  gltfLoader.load(
+    "/mickeyShopee.glb",
+    function (gltf) {
+      const mickeyMesh = gltf.scene;
+      mickeyMesh.traverse(function (child) {
         if (child instanceof THREE.Mesh) {
           console.log(child);
-
-          // Carrega todas as texturas do dragão
-          // 1. Color/Diffuse Map - define a cor base do material
-          let colorTexture = textureLoader.load(
-            "/dragon/Dragon_Bump_Col2.jpg"
-          );
-
-          // 2. Normal Map - adiciona detalhes de superfície sem adicionar geometria
-          // Simula relevos e reentrâncias na superfície
-          let normalTexture = textureLoader.load("/dragon/Dragon_Nor.jpg");
-
-          // Cria material com layering de texturas
-          // MeshStandardMaterial suporta PBR (Physically Based Rendering)
-          child.material = new THREE.MeshStandardMaterial({
-            // Texture Layers:
-            map: colorTexture, // Cor base (difusa)
-            normalMap: normalTexture, // Detalhes de superfície
-
-            // Propriedades do Normal Map
-            normalScale: new THREE.Vector2(1, 1), // Intensidade do normal map (x, y)
-
-            // Propriedades do Bump Map
-            bumpScale: 0.5, // Intensidade do bump (altura)
-
-            // Propriedades PBR para realismo
-            roughness: 0.8, // Aspereza da superfície (0=liso, 1=áspero)
-            metalness: 0.2, // Propriedades metálicas (0=não-metal, 1=metal)
-          });
-
           child.castShadow = true;
           child.receiveShadow = true;
         }
       });
-      scene.add(dragonMesh);
-      objects["dragao"] = dragonMesh;
-      dragonMesh.position.x = -10;
-      dragonMesh.scale.x = dragonMesh.scale.y = dragonMesh.scale.z = 0.01;
-      dragonMesh.position.y = -5.8;
+      scene.add(mickeyMesh);
+      objects["mickey"] = mickeyMesh;
+      mickeyMesh.position.x = -10;
+      mickeyMesh.scale.x = mickeyMesh.scale.y = mickeyMesh.scale.z = 50;
+      mickeyMesh.position.y = -5.8;
 
       // Animation
       let animation;
 
-      mixer = new THREE.AnimationMixer(dragonMesh);
+      mixer = new THREE.AnimationMixer(mickeyMesh);
 
       // Log all available animations
-      console.log("Available animations:", dragonMesh.animations.length);
-      dragonMesh.animations.forEach((anim, index) => {
+      console.log("Available animations:", gltf.animations.length);
+      gltf.animations.forEach((anim, index) => {
         console.log(`Animation ${index}:`, anim.name);
       });
 
-      // walking (index 0)
-      animation = mixer.clipAction(dragonMesh.animations[0]);
-      animationActions.push(animation);
+      // Load all animations from GLB
+      gltf.animations.forEach((anim, index) => {
+        animation = mixer.clipAction(anim);
+        animationActions.push(animation);
+      });
 
-      // flying (index 1) - adding the flying animation
-      animation = mixer.clipAction(dragonMesh.animations[1]);
-      animationActions.push(animation);
+      // Start with first animation (usually idle)
+      if (animationActions.length > 0) {
+        activeAnimation = animationActions[0];
+        setAction(activeAnimation);
+        loadFinished = true;
+        activeAnimation.play();
+      }
 
-      // idle (index 2)
-      animation = mixer.clipAction(dragonMesh.animations[2]);
-      animationActions.push(animation);
-
-      // running (index 3)
-      animation = mixer.clipAction(dragonMesh.animations[3]);
-      animationActions.push(animation);
-
-      activeAnimation = animationActions[2]; // Start with idle
-      setAction(activeAnimation);
-      loadFinished = true;
-      activeAnimation.play();
-
-      // Create a Map for animations
+      // Create a Map for animations using correct GLB animation names
       const animationsMap = new Map();
-      animationsMap.set("Walk", animationActions[0]);
-      animationsMap.set("Idle", animationActions[2]);
-      animationsMap.set("Run", animationActions[3]);
+      animationsMap.set("Idle", mixer.clipAction(gltf.animations[0])); // idle
+      animationsMap.set("Walk", mixer.clipAction(gltf.animations[1])); // walk
+      animationsMap.set("Run", mixer.clipAction(gltf.animations[2])); // run
 
       characterControls = new CharacterControls(
-        dragonMesh,
+        mickeyMesh,
         mixer,
         animationsMap,
         orbitControls,
@@ -436,8 +405,7 @@ function init() {
 
   // CAMERA - Otimizado para performance
   renderer = new THREE.WebGLRenderer({
-    antialias: false,
-    powerPreference: "high-performance",
+    antialias: true,
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limitar pixel ratio
   renderer.render(scene, camera);
@@ -460,8 +428,8 @@ function init() {
   // CONTROLS
   orbitControls = new OrbitControls(camera, renderer.domElement);
   orbitControls.enableDamping = true;
-  orbitControls.minDistance = 50;
-  orbitControls.maxDistance = 15;
+  orbitControls.minDistance = 5;
+  orbitControls.maxDistance = 150;
   orbitControls.enablePan = false;
   orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
   orbitControls.update();
@@ -495,14 +463,12 @@ var nossaAnimacao = function () {
 
   if (loadFinished) {
     mixer.update(delta);
-    console.log("Animação rodando");
     if (characterControls) {
       characterControls.update(delta, keysPressed);
     }
   }
   orbitControls.update();
   renderer.render(scene, camera);
-  requestAnimationFrame(nossaAnimacao);
 };
 
 // Initialize the application

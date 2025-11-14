@@ -1,4 +1,4 @@
-import { KeyDisplay } from "./utils";
+// import { KeyDisplay } from "./utils";
 import { CharacterControls } from "./characterControls";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -86,7 +86,7 @@ var setSpotLighting = function (scene) {
 var setPointLighting = function (scene) {
   let pointLight = new THREE.PointLight(0xffffff, 5000);
   // Configurar as coordenadas do pointLight usando Object.assign
-  Object.assign(pointLight.position, { x: -20, y: -5.8, z: 30 });
+  Object.assign(pointLight.position, { x: 10, y: 1, z: 10 });
   pointLight.distance = 50;
   pointLight.decay = 2;
   pointLight.castShadow = true;
@@ -164,8 +164,8 @@ var createGui = function () {
     animation: "idle",
     normalIntensity: 1.0,
     bumpIntensity: 0.5,
-    roughness: 0.8,
-    metalness: 0.2,
+    roughness: 1.0,
+    metalness: 0.0,
     runMode: "toggle",
   };
 
@@ -309,24 +309,58 @@ var createGui = function () {
 
 var loadObj = function () {
   let gltfLoader = new GLTFLoader();
-  let textureLoader = new THREE.TextureLoader();
 
   gltfLoader.load(
     "/mickeyShopee.glb",
-    function (gltf) {
+    async function (gltf) {
       const mickeyMesh = gltf.scene;
+
+      // Carrega texturas fixas do GLB
+      const baseColorTexture = await gltf.parser.getDependency("texture", 0);
+      const normalTexture = await gltf.parser.getDependency("texture", 1);
+      const ormTexture = await gltf.parser.getDependency("texture", 2);
+      const emissiveTexture = await gltf.parser.getDependency("texture", 3);
+
       mickeyMesh.traverse(function (child) {
         if (child instanceof THREE.Mesh) {
-          console.log(child);
           child.castShadow = true;
           child.receiveShadow = true;
+
+          if (child.material) {
+            // Textura 0: Base Color
+            child.material.map = baseColorTexture;
+
+            // Textura 1: Normal Map (desabilitado por causar artefatos)
+            // child.material.normalMap = normalTexture;
+            // child.material.normalScale = new THREE.Vector2(
+            //   parametrosGui.normalIntensity,
+            //   parametrosGui.normalIntensity
+            // );
+
+            // Textura 2: ORM (Occlusion/Roughness/Metalness)
+            child.material.roughnessMap = ormTexture;
+            child.material.metalnessMap = ormTexture;
+
+            if (child.geometry.attributes.uv2) {
+              child.material.aoMap = ormTexture;
+              child.material.aoMapIntensity = 1.0;
+            }
+
+            // Textura 3: Emissive
+            child.material.emissiveMap = emissiveTexture;
+
+            // Configurar propriedades do material
+            child.material.roughness = parametrosGui.roughness;
+            child.material.metalness = parametrosGui.metalness;
+            child.material.needsUpdate = true;
+          }
         }
       });
       scene.add(mickeyMesh);
       objects["mickey"] = mickeyMesh;
-      mickeyMesh.position.x = -10;
+      mickeyMesh.position.x = 0;
+      mickeyMesh.position.y = 0;
       mickeyMesh.scale.x = mickeyMesh.scale.y = mickeyMesh.scale.z = 50;
-      mickeyMesh.position.y = -5.8;
 
       // Animation
       let animation;
@@ -400,24 +434,32 @@ var createGround = function (scene) {
     materialGround
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -6;
+  ground.position.y = 0;
   ground.receiveShadow = true;
 
   scene.add(ground);
 };
 
+var createBackground = function (scene) {
+  let background = new THREE.Color(0xb3e0ff); // azul claro, cor de céu
+  scene.background = background;
+};
+
 function init() {
   camera = new THREE.PerspectiveCamera(
-    100,
+    50,
     window.innerWidth / window.innerHeight,
     0.1,
     200
   );
-  // camera.position.z = -20;
+  Object.assign(camera.position, { x: 0, y: 10, z: 60 });
 
   //cria o mundo
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xb3e0ff); // azul claro, cor de céu
+  createGui();
+  createBackground(scene);
+  setAmbientLighting(scene);
+  setDirectionalLighting(scene);
 
   // CAMERA - Máxima qualidade de antialiasing
   renderer = new THREE.WebGLRenderer({
@@ -432,16 +474,11 @@ function init() {
   renderer.setAnimationLoop(nossaAnimacao);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Melhor qualidade de sombras com antialiasing
+  createGround(scene);
 
   // scene.add(new THREE.AmbientLight(0xffffff));
-  createGround(scene);
-  setAmbientLighting(scene);
-  setDirectionalLighting(scene);
 
-  createGui();
   loadObj();
-  camera.position.z = 60;
-  camera.position.y = 10;
   //necessário se queremos fazer algo com animação
 
   // CONTROLS
@@ -458,7 +495,7 @@ function init() {
 
 // CONTROL KEYS
 const keysPressed = {};
-const keyDisplayQueue = new KeyDisplay();
+// const keyDisplayQueue = new KeyDisplay();
 
 let shiftPressed = false;
 let lastShiftTime = 0;
@@ -466,8 +503,6 @@ let lastShiftTime = 0;
 document.addEventListener(
   "keydown",
   (event) => {
-    keyDisplayQueue.down(event.key);
-
     if (event.key.toLowerCase() === "shift") {
       if (!shiftPressed && characterControls) {
         shiftPressed = true;
@@ -496,8 +531,6 @@ document.addEventListener(
 );
 
 document.addEventListener("keyup", (event) => {
-  keyDisplayQueue.up(event.key);
-
   if (event.key.toLowerCase() === "shift") {
     shiftPressed = false;
 
@@ -522,6 +555,14 @@ var nossaAnimacao = function () {
   orbitControls.update();
   renderer.render(scene, camera);
 };
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  keyDisplayQueue.updatePosition();
+}
+window.addEventListener("resize", onWindowResize);
 
 // Initialize the application
 init();

@@ -425,6 +425,7 @@ var loadCity = function (scene) {
     function (gltf) {
       const cityMesh = gltf.scene;
 
+      // Set shadows for all meshes
       cityMesh.traverse(function (child) {
         if (child instanceof THREE.Mesh) {
           child.castShadow = true;
@@ -432,12 +433,53 @@ var loadCity = function (scene) {
         }
       });
 
+      // Adjust position and scale FIRST
+      cityMesh.position.set(0, 0, 0);
+      cityMesh.scale.set(10, 10, 10);
+
       scene.add(cityMesh);
       objects["city"] = cityMesh;
 
-      // Adjust position and scale as needed
-      cityMesh.position.set(0, 0, 0);
-      cityMesh.scale.set(10, 10, 10);
+      // Update world matrices after adding to scene and setting scale
+      cityMesh.updateMatrixWorld(true);
+
+      // Now compute bounding boxes with correct world transforms
+      cityMesh.traverse((child) => {
+        if (child.isMesh) {
+          const box = new THREE.Box3().setFromObject(child);
+          const boxSize = box.getSize(new THREE.Vector3());
+          const boxCenter = box.getCenter(new THREE.Vector3());
+
+          console.log(
+            `Child: ${child.name}, Box Size: (${boxSize.x.toFixed(
+              2
+            )}, ${boxSize.y.toFixed(2)}, ${boxSize.z.toFixed(
+              2
+            )}), Center: (${boxCenter.x.toFixed(2)}, ${boxCenter.y.toFixed(
+              2
+            )}, ${boxCenter.z.toFixed(2)})`
+          );
+
+          // Store bounding box in the mesh for collision detection
+          child.userData.boundingBox = box;
+
+          // Create a visual helper for the bounding box (for debugging)
+          const boxHelper = new THREE.Box3Helper(box, 0xff0000);
+          scene.add(boxHelper);
+        }
+      });
+
+      // Compute overall bounding box for the entire city
+      const cityBox = new THREE.Box3().setFromObject(cityMesh);
+      const citySize = cityBox.getSize(new THREE.Vector3());
+      const cityCenter = cityBox.getCenter(new THREE.Vector3());
+      console.log(
+        `City overall Box Size: (${citySize.x.toFixed(2)}, ${citySize.y.toFixed(
+          2
+        )}, ${citySize.z.toFixed(2)}), Center: (${cityCenter.x.toFixed(
+          2
+        )}, ${cityCenter.y.toFixed(2)}, ${cityCenter.z.toFixed(2)})`
+      );
     },
     function (progress) {
       console.log(

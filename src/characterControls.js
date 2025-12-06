@@ -7,6 +7,7 @@ export class CharacterControls {
   animationsMap = new Map(); // Walk, Run, Idle
   orbitControl;
   camera;
+  collisionBoxes = []; // Array of Box3 for collision detection
 
   // state
   toggleRun = true;
@@ -18,6 +19,10 @@ export class CharacterControls {
   rotateAngle = new THREE.Vector3(0, 1, 0);
   rotateQuarternion = new THREE.Quaternion();
   cameraTarget = new THREE.Vector3();
+
+  // Character bounding box for collision
+  characterBox = new THREE.Box3();
+  characterSize = new THREE.Vector3(3, 10, 3); // Approximate character size
 
   // constants
   fadeDuration = 0.2;
@@ -65,6 +70,34 @@ export class CharacterControls {
     if (this.runMode === "hold") {
       this.toggleRun = isRunning;
     }
+  }
+
+  setCollisionBoxes(boxes) {
+    this.collisionBoxes = boxes;
+  }
+
+  // Check if a position would collide with any obstacle
+  checkCollision(newPosition) {
+    // Create a bounding box for the character at the new position
+    const halfSize = this.characterSize.clone().multiplyScalar(0.5);
+    this.characterBox.min.set(
+      newPosition.x - halfSize.x,
+      newPosition.y,
+      newPosition.z - halfSize.z
+    );
+    this.characterBox.max.set(
+      newPosition.x + halfSize.x,
+      newPosition.y + this.characterSize.y,
+      newPosition.z + halfSize.z
+    );
+
+    // Check collision with all obstacle boxes
+    for (const box of this.collisionBoxes) {
+      if (this.characterBox.intersectsBox(box)) {
+        return true; // Collision detected
+      }
+    }
+    return false; // No collision
   }
 
   update(delta, keysPressed) {
@@ -117,21 +150,48 @@ export class CharacterControls {
       const velocity =
         this.currentAction == "Run" ? this.runVelocity : this.walkVelocity;
 
-      // move model & camera
+      // Calculate intended movement
       const moveX = this.walkDirection.x * velocity * delta;
       const moveZ = this.walkDirection.z * velocity * delta;
-      this.model.position.x += moveX;
-      this.model.position.z += moveZ;
-      this.updateCameraTarget(moveX, moveZ);
 
-      // Log current character position
-      // console.log(
-      //   `Character position: x=${this.model.position.x.toFixed(
-      //     2
-      //   )}, y=${this.model.position.y.toFixed(
-      //     2
-      //   )}, z=${this.model.position.z.toFixed(2)}`
-      // );
+      // Calculate new position
+      const newPosition = new THREE.Vector3(
+        this.model.position.x + moveX,
+        this.model.position.y,
+        this.model.position.z + moveZ
+      );
+
+      // Check collision before moving
+      if (!this.checkCollision(newPosition)) {
+        // No collision, move freely
+        this.model.position.x = newPosition.x;
+        this.model.position.z = newPosition.z;
+        this.updateCameraTarget(moveX, moveZ);
+      } else {
+        // Try sliding along walls - check X and Z separately
+        const newPositionX = new THREE.Vector3(
+          this.model.position.x + moveX,
+          this.model.position.y,
+          this.model.position.z
+        );
+        const newPositionZ = new THREE.Vector3(
+          this.model.position.x,
+          this.model.position.y,
+          this.model.position.z + moveZ
+        );
+
+        // Try moving only in X
+        if (!this.checkCollision(newPositionX)) {
+          this.model.position.x = newPositionX.x;
+          this.updateCameraTarget(moveX, 0);
+        }
+        // Try moving only in Z
+        else if (!this.checkCollision(newPositionZ)) {
+          this.model.position.z = newPositionZ.z;
+          this.updateCameraTarget(0, moveZ);
+        }
+        // Both blocked - can't move
+      }
     }
   }
 

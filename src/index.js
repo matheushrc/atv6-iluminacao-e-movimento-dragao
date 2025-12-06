@@ -8,6 +8,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 let camera, scene, renderer, orbitControls, characterControls;
 
 let objects = {};
+let collisionBoxes = []; // Store bounding boxes for collision detection
 
 let parametrosGui;
 
@@ -400,6 +401,11 @@ var loadObj = function () {
         camera,
         "Idle"
       );
+
+      // Set collision boxes if city has already loaded
+      if (collisionBoxes.length > 0) {
+        characterControls.setCollisionBoxes(collisionBoxes);
+      }
     },
 
     function (progress) {
@@ -450,24 +456,40 @@ var loadCity = function (scene) {
           const boxSize = box.getSize(new THREE.Vector3());
           const boxCenter = box.getCenter(new THREE.Vector3());
 
-          console.log(
-            `Child: ${child.name}, Box Size: (${boxSize.x.toFixed(
-              2
-            )}, ${boxSize.y.toFixed(2)}, ${boxSize.z.toFixed(
-              2
-            )}), Center: (${boxCenter.x.toFixed(2)}, ${boxCenter.y.toFixed(
-              2
-            )}, ${boxCenter.z.toFixed(2)})`
-          );
-
           // Store bounding box in the mesh for collision detection
           child.userData.boundingBox = box;
 
-          // Create a visual helper for the bounding box (for debugging)
-          const boxHelper = new THREE.Box3Helper(box, 0xff0000);
-          scene.add(boxHelper);
+          // Skip ground/floor meshes (flat objects) for collision - only check vertical objects
+          // Ground meshes typically have very small height compared to width/depth
+          const isGround = boxSize.y < 1 && (boxSize.x > 10 || boxSize.z > 10);
+
+          if (!isGround && boxSize.y > 2) {
+            // Only add boxes for objects with significant height (buildings, walls, etc.)
+            collisionBoxes.push(box);
+
+            // Create a visual helper for the bounding box (for debugging)
+            const boxHelper = new THREE.Box3Helper(box, 0xff0000);
+            scene.add(boxHelper);
+
+            console.log(
+              `Collision object: ${child.name}, Box Size: (${boxSize.x.toFixed(
+                2
+              )}, ${boxSize.y.toFixed(2)}, ${boxSize.z.toFixed(
+                2
+              )}), Center: (${boxCenter.x.toFixed(2)}, ${boxCenter.y.toFixed(
+                2
+              )}, ${boxCenter.z.toFixed(2)})`
+            );
+          }
         }
       });
+
+      console.log(`Total collision boxes: ${collisionBoxes.length}`);
+
+      // Pass collision boxes to character controls if it's already initialized
+      if (characterControls) {
+        characterControls.setCollisionBoxes(collisionBoxes);
+      }
 
       // Compute overall bounding box for the entire city
       const cityBox = new THREE.Box3().setFromObject(cityMesh);

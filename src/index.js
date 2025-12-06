@@ -416,28 +416,39 @@ var loadObj = function () {
  * Receives scene
  * @param {THREE.Scene} scene
  *
- * Create ground mesh.
- * @returns {THREE.Mesh}
+ * Load city GLB model.
  */
-var createGround = function (scene) {
-  let textureLoader = new THREE.TextureLoader();
-  let textureGround = textureLoader.load("/grasslight-big.jpg");
-  textureGround.wrapS = THREE.RepeatWrapping;
-  textureGround.wrapT = THREE.RepeatWrapping;
-  textureGround.repeat.set(25, 25);
-  textureGround.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Máximo anisotropic filtering
+var loadCity = function (scene) {
+  let gltfLoader = new GLTFLoader();
 
-  let materialGround = new THREE.MeshStandardMaterial({ map: textureGround });
+  gltfLoader.load(
+    "/neighbourhood-city-modular-lowpoly/source/city.glb",
+    function (gltf) {
+      const cityMesh = gltf.scene;
 
-  let ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(1000, 1000),
-    materialGround
+      cityMesh.traverse(function (child) {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      scene.add(cityMesh);
+      objects["city"] = cityMesh;
+
+      // Adjust position and scale as needed
+      cityMesh.position.set(0, 0, 0);
+      cityMesh.scale.set(1, 1, 1);
+    },
+    function (progress) {
+      console.log(
+        "Loading city: " + (progress.loaded / progress.total) * 100 + "%"
+      );
+    },
+    function (error) {
+      console.log("Error loading city: " + error);
+    }
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0;
-  ground.receiveShadow = true;
-
-  scene.add(ground);
 };
 
 var createBackground = function (scene) {
@@ -474,7 +485,7 @@ function init() {
   renderer.setAnimationLoop(nossaAnimacao);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Melhor qualidade de sombras com antialiasing
-  createGround(scene);
+  loadCity(scene);
 
   // scene.add(new THREE.AmbientLight(0xffffff));
 

@@ -358,8 +358,7 @@ var loadObj = function () {
       });
       scene.add(mickeyMesh);
       objects["mickey"] = mickeyMesh;
-      mickeyMesh.position.x = 0;
-      mickeyMesh.position.y = 0;
+      Object.assign(mickeyMesh.position, { x: 190, y: 0, z: 14 });
       mickeyMesh.scale.x = mickeyMesh.scale.y = mickeyMesh.scale.z = 50;
 
       // Animation
@@ -438,7 +437,7 @@ var loadCity = function (scene) {
 
       // Adjust position and scale as needed
       cityMesh.position.set(0, 0, 0);
-      cityMesh.scale.set(1, 1, 1);
+      cityMesh.scale.set(10, 10, 10);
     },
     function (progress) {
       console.log(
@@ -461,7 +460,7 @@ function init() {
     50,
     window.innerWidth / window.innerHeight,
     0.1,
-    200
+    1000
   );
   Object.assign(camera.position, { x: 0, y: 10, z: 60 });
 

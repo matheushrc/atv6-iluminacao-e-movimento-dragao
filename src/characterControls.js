@@ -123,6 +123,15 @@ export class CharacterControls {
       this.model.position.x += moveX;
       this.model.position.z += moveZ;
       this.updateCameraTarget(moveX, moveZ);
+
+      // Log current character position
+      // console.log(
+      //   `Character position: x=${this.model.position.x.toFixed(
+      //     2
+      //   )}, y=${this.model.position.y.toFixed(
+      //     2
+      //   )}, z=${this.model.position.z.toFixed(2)}`
+      // );
     }
   }
 

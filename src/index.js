@@ -308,7 +308,7 @@ var createGui = function () {
     });
 };
 
-var loadObj = function () {
+var loadMickey = function () {
   let gltfLoader = new GLTFLoader();
 
   gltfLoader.load(
@@ -367,11 +367,11 @@ var loadObj = function () {
 
       mixer = new THREE.AnimationMixer(mickeyMesh);
 
-      // Log all available animations
-      console.log("Available animations:", gltf.animations.length);
-      gltf.animations.forEach((anim, index) => {
-        console.log(`Animation ${index}:`, anim.name);
-      });
+      // // Log all available animations
+      // console.log("Available animations:", gltf.animations.length);
+      // gltf.animations.forEach((anim, index) => {
+      //   console.log(`Animation ${index}:`, anim.name);
+      // });
 
       // Load all animations from GLB
       gltf.animations.forEach((anim, index) => {
@@ -413,6 +413,241 @@ var loadObj = function () {
     },
     function (error) {
       console.log("Deu merda " + error);
+    }
+  );
+};
+
+/**
+ * Load dog GLTF model.
+ */
+var dogMixer;
+var dogAnimationActions = [];
+var activeDogAnimation;
+
+var loadDogDoidinho = function () {
+  let gltfLoader = new GLTFLoader();
+  const textureLoader = new THREE.TextureLoader();
+
+  gltfLoader.load(
+    "/dog-quirky-series/dog-quirky-series.gltf",
+    function (gltf) {
+      const dogMesh = gltf.scene;
+
+      // Load textures manually
+      const baseColorTexture = textureLoader.load(
+        "/dog-quirky-series/textures/T_Dog.png"
+      );
+      baseColorTexture.flipY = false; // GLTF uses non-flipped textures
+
+      dogMesh.traverse(function (child) {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+
+          if (child.material) {
+            // Apply base color texture
+            child.material.map = baseColorTexture;
+
+            // Configure material properties
+            child.material.roughness = parametrosGui.roughness;
+            child.material.metalness = parametrosGui.metalness;
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      scene.add(dogMesh);
+      objects["dog"] = dogMesh;
+      Object.assign(dogMesh.position, { x: -12, y: 0, z: 150 });
+      dogMesh.scale.set(0.1, 0.1, 0.1);
+
+      // Animation setup
+      dogMixer = new THREE.AnimationMixer(dogMesh);
+
+      // Load all animations from GLTF
+      gltf.animations.forEach((anim, index) => {
+        const action = dogMixer.clipAction(anim);
+        dogAnimationActions.push(action);
+      });
+
+      // Start with Idle_A animation (index 8)
+      if (dogAnimationActions.length > 8) {
+        activeDogAnimation = dogAnimationActions[1]; // Idle_A
+        activeDogAnimation.play();
+      }
+
+      console.log("Dog loaded with textures and animations!");
+    },
+    function (progress) {
+      console.log(
+        "Loading dog: " + (progress.loaded / progress.total) * 100 + "%"
+      );
+    },
+    function (error) {
+      console.log("Error loading dog: " + error);
+    }
+  );
+};
+
+/**
+ * Load dog bubble gum GLB model - LOG TEXTURES AND ANIMATIONS
+ */
+/**
+ * Load dog bubble gum GLB model with textures and animations
+ */
+var dogBubbleGumMixer;
+var dogBubbleGumAnimationActions = [];
+var activeDogBubbleGumAnimation;
+
+var loadDogBubbleGum = function () {
+  let gltfLoader = new GLTFLoader();
+
+  gltfLoader.load(
+    "/dog-bubble-gum.glb",
+    async function (gltf) {
+      const dogMesh = gltf.scene;
+
+      // Load textures from the GLB parser
+      const baseColorTexture = await gltf.parser.getDependency("texture", 0);
+      const normalTexture = await gltf.parser.getDependency("texture", 1);
+      const roughnessTexture = await gltf.parser.getDependency("texture", 2);
+      const emissiveTexture = await gltf.parser.getDependency("texture", 3);
+
+      dogMesh.traverse(function (child) {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+
+          if (child.material) {
+            // Apply base color texture
+            child.material.map = baseColorTexture;
+
+            // Apply normal map
+            child.material.normalMap = normalTexture;
+            child.material.normalScale = new THREE.Vector2(
+              parametrosGui.normalIntensity,
+              parametrosGui.normalIntensity
+            );
+
+            // Apply roughness map
+            child.material.roughnessMap = roughnessTexture;
+
+            // Apply emissive map
+            child.material.emissiveMap = emissiveTexture;
+
+            // Configure material properties
+            child.material.roughness = parametrosGui.roughness;
+            child.material.metalness = parametrosGui.metalness;
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      scene.add(dogMesh);
+      objects["dogBubbleGum"] = dogMesh;
+      Object.assign(dogMesh.position, { x: -132.59, y: 0, z: -69.6 });
+      dogMesh.scale.set(50, 50, 50);
+
+      // Animation setup
+      dogBubbleGumMixer = new THREE.AnimationMixer(dogMesh);
+
+      // Load all animations from GLB
+      gltf.animations.forEach((anim, index) => {
+        const action = dogBubbleGumMixer.clipAction(anim);
+        dogBubbleGumAnimationActions.push(action);
+      });
+
+      // Start with bubble_blow animation (index 0)
+      if (dogBubbleGumAnimationActions.length > 0) {
+        activeDogBubbleGumAnimation = dogBubbleGumAnimationActions[0];
+        activeDogBubbleGumAnimation.play();
+      }
+
+      console.log("Dog Bubble Gum loaded with textures and animations!");
+    },
+    function (progress) {
+      console.log(
+        "Loading dog bubble gum: " +
+          (progress.loaded / progress.total) * 100 +
+          "%"
+      );
+    },
+    function (error) {
+      console.log("Error loading dog bubble gum: " + error);
+    }
+  );
+};
+
+var dachshundMixer;
+var dachshundAnimationActions = [];
+var activeDachshundAnimation;
+
+var loadDachshund = function () {
+  let gltfLoader = new GLTFLoader();
+
+  gltfLoader.load(
+    "/dachshund-dog.glb",
+    async function (gltf) {
+      const dogMesh = gltf.scene;
+
+      // Load textures from the GLB parser
+      const baseColorTexture = await gltf.parser.getDependency("texture", 0);
+      const normalTexture = await gltf.parser.getDependency("texture", 1);
+
+      dogMesh.traverse(function (child) {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+
+          if (child.material) {
+            // Apply base color texture
+            child.material.map = baseColorTexture;
+
+            // Apply normal map
+            child.material.normalMap = normalTexture;
+            child.material.normalScale = new THREE.Vector2(
+              parametrosGui.normalIntensity,
+              parametrosGui.normalIntensity
+            );
+
+            // Configure material properties
+            child.material.roughness = parametrosGui.roughness;
+            child.material.metalness = parametrosGui.metalness;
+            child.material.needsUpdate = true;
+          }
+        }
+      });
+
+      scene.add(dogMesh);
+      objects["dachshund"] = dogMesh;
+      Object.assign(dogMesh.position, { x: 215, y: 0, z: 13 });
+      dogMesh.scale.set(1, 1, 1);
+
+      // Animation setup
+      dachshundMixer = new THREE.AnimationMixer(dogMesh);
+
+      // Load all animations from GLB
+      // Animations: 0=Eating, 1=Idle_1, 2=Idle_2, 3=Jump, 4=PoseLib, 5=Run, 6=Walk
+      gltf.animations.forEach((anim, index) => {
+        const action = dachshundMixer.clipAction(anim);
+        dachshundAnimationActions.push(action);
+      });
+
+      // Start with Idle_1 animation (index 1)
+      if (dachshundAnimationActions.length > 1) {
+        activeDachshundAnimation = dachshundAnimationActions[5];
+        activeDachshundAnimation.play();
+      }
+
+      console.log("Dachshund dog loaded with textures and animations!");
+    },
+    function (progress) {
+      console.log(
+        "Loading dachshund: " + (progress.loaded / progress.total) * 100 + "%"
+      );
+    },
+    function (error) {
+      console.log("Error loading dachshund: " + error);
     }
   );
 };
@@ -467,24 +702,24 @@ var loadCity = function (scene) {
             // Only add boxes for objects with significant height (buildings, walls, etc.)
             collisionBoxes.push(box);
 
-            // Create a visual helper for the bounding box (for debugging)
-            const boxHelper = new THREE.Box3Helper(box, 0xff0000);
-            scene.add(boxHelper);
+            // // Create a visual helper for the bounding box (for debugging)
+            // const boxHelper = new THREE.Box3Helper(box, 0xff0000);
+            // scene.add(boxHelper);
 
-            console.log(
-              `Collision object: ${child.name}, Box Size: (${boxSize.x.toFixed(
-                2
-              )}, ${boxSize.y.toFixed(2)}, ${boxSize.z.toFixed(
-                2
-              )}), Center: (${boxCenter.x.toFixed(2)}, ${boxCenter.y.toFixed(
-                2
-              )}, ${boxCenter.z.toFixed(2)})`
-            );
+            // console.log(
+            //   `Collision object: ${child.name}, Box Size: (${boxSize.x.toFixed(
+            //     2
+            //   )}, ${boxSize.y.toFixed(2)}, ${boxSize.z.toFixed(
+            //     2
+            //   )}), Center: (${boxCenter.x.toFixed(2)}, ${boxCenter.y.toFixed(
+            //     2
+            //   )}, ${boxCenter.z.toFixed(2)})`
+            // );
           }
         }
       });
 
-      console.log(`Total collision boxes: ${collisionBoxes.length}`);
+      // console.log(`Total collision boxes: ${collisionBoxes.length}`);
 
       // Pass collision boxes to character controls if it's already initialized
       if (characterControls) {
@@ -495,14 +730,15 @@ var loadCity = function (scene) {
       const cityBox = new THREE.Box3().setFromObject(cityMesh);
       const citySize = cityBox.getSize(new THREE.Vector3());
       const cityCenter = cityBox.getCenter(new THREE.Vector3());
-      console.log(
-        `City overall Box Size: (${citySize.x.toFixed(2)}, ${citySize.y.toFixed(
-          2
-        )}, ${citySize.z.toFixed(2)}), Center: (${cityCenter.x.toFixed(
-          2
-        )}, ${cityCenter.y.toFixed(2)}, ${cityCenter.z.toFixed(2)})`
-      );
+      // console.log(
+      //   `City overall Box Size: (${citySize.x.toFixed(2)}, ${citySize.y.toFixed(
+      //     2
+      //   )}, ${citySize.z.toFixed(2)}), Center: (${cityCenter.x.toFixed(
+      //     2
+      //   )}, ${cityCenter.y.toFixed(2)}, ${cityCenter.z.toFixed(2)})`
+      // );
     },
+
     function (progress) {
       console.log(
         "Loading city: " + (progress.loaded / progress.total) * 100 + "%"
@@ -552,7 +788,10 @@ function init() {
 
   // scene.add(new THREE.AmbientLight(0xffffff));
 
-  loadObj();
+  loadMickey();
+  loadDogDoidinho();
+  loadDogBubbleGum();
+  loadDachshund();
   //necessário se queremos fazer algo com animação
 
   // CONTROLS
@@ -626,6 +865,22 @@ var nossaAnimacao = function () {
       characterControls.update(delta, keysPressed);
     }
   }
+
+  // Update dog animation
+  if (dogMixer) {
+    dogMixer.update(delta);
+  }
+
+  // Update dog bubble gum animation
+  if (dogBubbleGumMixer) {
+    dogBubbleGumMixer.update(delta);
+  }
+
+  // Update dachshund animation
+  if (dachshundMixer) {
+    dachshundMixer.update(delta);
+  }
+
   orbitControls.update();
   renderer.render(scene, camera);
 };

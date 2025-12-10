@@ -192,6 +192,15 @@ export class CharacterControls {
         }
         // Both blocked - can't move
       }
+
+      // Log Mickey's position
+      console.log(
+        `Mickey Position: x=${this.model.position.x.toFixed(
+          2
+        )}, y=${this.model.position.y.toFixed(
+          2
+        )}, z=${this.model.position.z.toFixed(2)}`
+      );
     }
   }
 

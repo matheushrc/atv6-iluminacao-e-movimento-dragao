@@ -582,6 +582,15 @@ var dachshundMixer;
 var dachshundAnimationActions = [];
 var activeDachshundAnimation;
 
+// Path for dachshund to follow
+const dachshundPathPoints = [
+  new THREE.Vector3(26.95, 0, 88.32),
+  new THREE.Vector3(-113.48, 0, 88.24),
+  new THREE.Vector3(-112.95, 0, -71.22),
+  new THREE.Vector3(27.69, 0, -69.54),
+];
+const dachshundPath = new THREE.CatmullRomCurve3(dachshundPathPoints, true);
+
 var loadDachshund = function () {
   let gltfLoader = new GLTFLoader();
 
@@ -620,8 +629,10 @@ var loadDachshund = function () {
 
       scene.add(dogMesh);
       objects["dachshund"] = dogMesh;
-      Object.assign(dogMesh.position, { x: 215, y: 0, z: 13 });
-      dogMesh.scale.set(1, 1, 1);
+      // Initial position will be set by the path following logic
+      const initialPos = dachshundPath.getPointAt(0);
+      dogMesh.position.copy(initialPos);
+      dogMesh.scale.set(3, 3, 3);
 
       // Animation setup
       dachshundMixer = new THREE.AnimationMixer(dogMesh);
@@ -876,9 +887,22 @@ var nossaAnimacao = function () {
     dogBubbleGumMixer.update(delta);
   }
 
-  // Update dachshund animation
+  // Update dachshund animation and path following
   if (dachshundMixer) {
     dachshundMixer.update(delta);
+  }
+
+  // Make dachshund follow the path
+  if (objects["dachshund"]) {
+    const time = Date.now();
+    // t should be between 0 and 1 for the CatmullRom curve
+    // 5 = number of path points + 1, adjust speed with the divisor (4000 = slower)
+    const t = ((time / 4000) % 5) / 5;
+    const position = dachshundPath.getPointAt(t);
+    const tangent = dachshundPath.getTangentAt(t).normalize();
+
+    objects["dachshund"].position.copy(position);
+    objects["dachshund"].lookAt(position.clone().add(tangent));
   }
 
   orbitControls.update();

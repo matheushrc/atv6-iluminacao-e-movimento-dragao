@@ -1,6 +1,6 @@
-# Atividade 6: Iluminação e Movimento do Dragão
+# Trabalho Final: Cena do Mickey Shopee em busca de seus cães
 
-Este projeto demonstra uma animação com iluminação e movimento de um dragão.
+Este projeto demonstra um carregamento de um cenário, com luzes ambiente e direcional, e um personagem principal (Mickey) que é controlado, em busca de seus companheiros que estão em movimento. Todos os objetos (exceto cenário) possuem animação.
 
 ## Pré-requisitos
 

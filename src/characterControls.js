@@ -101,7 +101,7 @@ export class CharacterControls {
   }
 
   update(delta, keysPressed) {
-    const directionPressed = DIRECTIONS.some((key) => keysPressed[key] == true);
+    const directionPressed = DIRECTIONS.some((key) => keysPressed[key] == true); // verifica se alguma tecla de direção está pressionada
 
     var play = "";
     if (directionPressed && this.toggleRun) {
@@ -112,11 +112,11 @@ export class CharacterControls {
       play = "Idle";
     }
 
-    if (this.currentAction != play) {
+    if (this.currentAction != play) { // essa condição será verdadeira quando a animação atual for diferente da que deve ser reproduzida
       const toPlay = this.animationsMap.get(play);
       const current = this.animationsMap.get(this.currentAction);
 
-      current.fadeOut(this.fadeDuration);
+      current.fadeOut(this.fadeDuration); // faz a animação atual desaparecer suavemente
       toPlay.reset().fadeIn(this.fadeDuration).play();
 
       this.currentAction = play;
@@ -126,15 +126,15 @@ export class CharacterControls {
 
     if (this.currentAction == "Run" || this.currentAction == "Walk") {
       // calculate towards camera direction
-      var angleYCameraDirection = Math.atan2(
+      var angleYCameraDirection = Math.atan2( // calcula o ângulo entre a câmera e o personagem para determinar a direção do movimento
         this.camera.position.x - this.model.position.x,
         this.camera.position.z - this.model.position.z
       );
       // diagonal movement angle offset
-      var directionOffset = this.directionOffset(keysPressed);
+      var directionOffset = this.directionOffset(keysPressed); // calcula o deslocamento angular baseado nas teclas pressionadas
 
       // rotate model
-      this.rotateQuarternion.setFromAxisAngle(
+      this.rotateQuarternion.setFromAxisAngle( // cria um quaternio para a rotação suave do personagem
         this.rotateAngle,
         angleYCameraDirection + directionOffset + Math.PI
       );
@@ -211,12 +211,12 @@ export class CharacterControls {
 
     // update camera target
     this.cameraTarget.x = this.model.position.x;
-    this.cameraTarget.y = this.model.position.y + 1;
+    this.cameraTarget.y = this.model.position.y + 10;
     this.cameraTarget.z = this.model.position.z;
-    this.orbitControl.target = this.cameraTarget;
+    this.orbitControl.target = this.cameraTarget; // orbitControl é o controle de órbita da câmera, o target do orbitcontrol é o ponto para o qual a câmera está olhando
   }
 
-  directionOffset(keysPressed) {
+  directionOffset(keysPressed) { // É o ângulo de ajuste aplicado à direção da câmera para determinar para onde o personagem deve andar.
     var directionOffset = 0; // w
 
     if (keysPressed[W]) {

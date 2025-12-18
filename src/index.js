@@ -137,12 +137,12 @@ var setLighting = function (lightingType) {
 };
 
 var setAction = function (animacao) {
-  if (!animacao) {
+  if (!animacao) { // Verifica se a animação é indefinida
     console.error("Animation is undefined!");
     return;
   }
 
-  if (animacao != activeAnimation) {
+  if (animacao != activeAnimation) { //
     lastAnimation = activeAnimation;
     activeAnimation = animacao;
 
@@ -194,7 +194,7 @@ var createGui = function () {
       objects["mickey"].scale.x =
         objects["mickey"].scale.y =
         objects["mickey"].scale.z =
-          value;
+        value;
     });
 
   mickey
@@ -222,7 +222,7 @@ var createGui = function () {
         jump: 4,
       };
       if (animationActions[animIndex[value]]) {
-        setAction(animationActions[animIndex[value]]);
+        setAction(animationActions[animIndex[value]]); // Mapeia o nome da animação para o índice correto
       }
     });
 
@@ -375,8 +375,8 @@ var loadMickey = function () {
 
       // Load all animations from GLB
       gltf.animations.forEach((anim, index) => {
-        animation = mixer.clipAction(anim);
-        animationActions.push(animation);
+        animation = mixer.clipAction(anim); // Create AnimationAction for each clip
+        animationActions.push(animation); // Store in array for easy access
       });
 
       // Start with first animation (usually idle)
@@ -568,8 +568,8 @@ var loadDogBubbleGum = function () {
     function (progress) {
       console.log(
         "Loading dog bubble gum: " +
-          (progress.loaded / progress.total) * 100 +
-          "%"
+        (progress.loaded / progress.total) * 100 +
+        "%"
       );
     },
     function (error) {
@@ -589,7 +589,7 @@ const dachshundPathPoints = [
   new THREE.Vector3(-112.95, 0, -71.22),
   new THREE.Vector3(27.69, 0, -69.54),
 ];
-const dachshundPath = new THREE.CatmullRomCurve3(dachshundPathPoints, true);
+const dachshundPath = new THREE.CatmullRomCurve3(dachshundPathPoints, true); // essa função calcula uma curva suave que passa pelos pontos fornecidos, formando um loop fechado (true). CatmullRomCurve3 é uma classe do Three.js que facilita a criação e manipulação dessas curvas em cenas 3D.
 
 var loadDachshund = function () {
   let gltfLoader = new GLTFLoader();
@@ -693,17 +693,17 @@ var loadCity = function (scene) {
       objects["city"] = cityMesh;
 
       // Update world matrices after adding to scene and setting scale
-      cityMesh.updateMatrixWorld(true);
+      cityMesh.updateMatrixWorld(true); // força a atualização das matrizes do mundo para o objeto e seus filhos, pois o ThreeJs não faz isso automaticamente ao alterar escala/posição/rotação, pois não podemos esperar o próximo frame de renderização para termos as matrizes corretas.
 
       // Now compute bounding boxes with correct world transforms
       cityMesh.traverse((child) => {
         if (child.isMesh) {
-          const box = new THREE.Box3().setFromObject(child);
+          const box = new THREE.Box3().setFromObject(child); // calcula o box3 com base na geometria do objeto considerando sua transformação no mundo (posição, escala, rotação)
           const boxSize = box.getSize(new THREE.Vector3());
           const boxCenter = box.getCenter(new THREE.Vector3());
 
           // Store bounding box in the mesh for collision detection
-          child.userData.boundingBox = box;
+          child.userData.boundingBox = box; // userData me permite armazenar dados do bounding box no objeto Three.js
 
           // Skip ground/floor meshes (flat objects) for collision - only check vertical objects
           // Ground meshes typically have very small height compared to width/depth
@@ -811,7 +811,7 @@ function init() {
   orbitControls.minDistance = 5;
   orbitControls.maxDistance = 150;
   orbitControls.enablePan = false;
-  orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
+  orbitControls.maxPolarAngle = Math.PI / 2 - 0.05; // Evita que a câmera vá abaixo do chão
   orbitControls.update();
 
   document.body.appendChild(renderer.domElement);
@@ -835,7 +835,7 @@ document.addEventListener(
         // Toggle mode: precisa dar tap no Shift
         if (
           parametrosGui.runMode === "toggle" &&
-          currentTime - lastShiftTime < 500
+          currentTime - lastShiftTime < 500 // 500ms para evitar múltiplos toggles rápidos
         ) {
           characterControls.switchRunToggle();
         } else if (parametrosGui.runMode === "toggle") {
@@ -897,12 +897,12 @@ var nossaAnimacao = function () {
     const time = Date.now();
     // t should be between 0 and 1 for the CatmullRom curve
     // 5 = number of path points + 1, adjust speed with the divisor (4000 = slower)
-    const t = ((time / 4000) % 5) / 5;
-    const position = dachshundPath.getPointAt(t);
-    const tangent = dachshundPath.getTangentAt(t).normalize();
+    const t = ((time / 1000) % 5) / 5; // quanto tempo
+    const position = dachshundPath.getPointAt(t); // essa linha irá calcular a posição na curva correspondente ao parâmetro t, que varia de 0 a 1. Exemplo: se t for 0.5, a posição será o ponto médio da curva.
+    const tangent = dachshundPath.getTangentAt(t).normalize(); // essa lormalização a transforma em (1, 0, 0), mantendo apenas a direção.inha calcula a tangente da curva no ponto t e normaliza o vetor resultante. Exemplo: se a tangente for (2, 0, 0), a n
 
-    objects["dachshund"].position.copy(position);
-    objects["dachshund"].lookAt(position.clone().add(tangent));
+    objects["dachshund"].position.copy(position); // atualiza a posição do objeto dachshund para seguir a curva
+    objects["dachshund"].lookAt(position.clone().add(tangent)); // ajusta a orientação
   }
 
   orbitControls.update();
